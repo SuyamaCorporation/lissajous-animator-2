@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>リサージュ 曲線 アニメーター</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col items-center p-4">
+
+  <header class="text-center mb-6 mt-2">
+    <h1 class="text-2xl font-bold text-white">リサージュ 曲線 アニメーター</h1>
+    <p class="text-gray-400 text-sm mt-1">Lissajous Curve Animator</p>
+  </header>
+
+  <div class="w-full max-w-4xl flex flex-col lg:flex-row gap-6 items-start justify-center">
+
+    <!-- Canvas -->
+    <div class="flex flex-col items-center gap-2">
+      <canvas id="lissCanvas" width="500" height="500"
+        class="rounded-xl bg-black border border-gray-700"
+        role="img" aria-label="リサージュ曲線キャンバス"
+        style="max-width:100%;height:auto;"></canvas>
+      <div id="curveDesc" class="text-indigo-300 text-sm font-medium mt-1">1:1 — 正円</div>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex flex-col gap-4 flex-1 min-w-0 lg:max-w-xs">
+
+      <!-- Freq ratio -->
+      <div class="bg-gray-800 rounded-xl p-4 flex flex-col gap-3">
+        <h2 class="text-gray-300 text-sm font-semibold">周波数比 Frequency Ratio</h2>
+
+        <div class="flex items-center gap-3">
+          <label for="freqA" class="text-gray-400 text-xs w-16 shrink-0">a (X軸)</label>
+          <input id="freqA" type="range" min="1" max="10" value="1" step="1" class="flex-1 accent-indigo-500" aria-label="X軸周波数比 a">
+          <span id="freqAVal" class="text-indigo-400 font-mono text-sm w-6 text-center">1</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <label for="freqB" class="text-gray-400 text-xs w-16 shrink-0">b (Y軸)</label>
+          <input id="freqB" type="range" min="1" max="10" value="1" step="1" class="flex-1 accent-pink-500" aria-label="Y軸周波数比 b">
+          <span id="freqBVal" class="text-pink-400 font-mono text-sm w-6 text-center">1</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <label for="phaseSlider" class="text-gray-400 text-xs w-16 shrink-0">位相差 δ</label>
+          <input id="phaseSlider" type="range" min="0" max="628" value="0" step="1" class="flex-1 accent-cyan-500" aria-label="位相差δ">
+          <span id="phaseVal" class="text-cyan-400 font-mono text-xs w-16 text-right">0.00π</span>
+        </div>
+      </div>
+
+      <!-- Display controls -->
+      <div class="bg-gray-800 rounded-xl p-4 flex flex-col gap-3">
+        <h2 class="text-gray-300 text-sm font-semibold">表示設定 Display</h2>
+
+        <div class="flex items-center gap-3">
+          <label for="thicknessSlider" class="text-gray-400 text-xs w-16 shrink-0">太さ</label>
+          <input id="thicknessSlider" type="range" min="1" max="8" value="2" step="0.5" class="flex-1 accent-yellow-500" aria-label="線の太さ">
+          <span id="thicknessVal" class="text-yellow-400 font-mono text-xs w-8 text-right">2</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <label for="speedSlider" class="text-gray-400 text-xs w-16 shrink-0">速度</label>
+          <input id="speedSlider" type="range" min="1" max="20" value="5" step="1" class="flex-1 accent-orange-500" aria-label="アニメーション速度">
+          <span id="speedVal" class="text-orange-400 font-mono text-xs w-8 text-right">5</span>
+        </div>
+
+        <!-- Mode -->
+        <div class="flex gap-2 mt-1">
+          <button id="modeStatic"   class="flex-1 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white transition-colors">静的</button>
+          <button id="modeAnimated" class="flex-1 py-1.5 rounded-lg text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 transition-colors">アニメ</button>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="bg-gray-800 rounded-xl p-4 flex gap-2">
+        <button id="clearBtn"  class="flex-1 py-2 rounded-lg text-sm font-medium bg-gray-700 hover:bg-gray-600 transition-colors">クリア</button>
+        <button id="redrawBtn" class="flex-1 py-2 rounded-lg text-sm font-medium bg-indigo-600 hover:bg-indigo-500 transition-colors">再描画</button>
+      </div>
+
+      <!-- Presets -->
+      <div class="bg-gray-800 rounded-xl p-4">
+        <h2 class="text-gray-300 text-sm font-semibold mb-2">プリセット</h2>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="setPreset(1,1,0)"    class="py-1.5 px-2 rounded-lg text-xs bg-gray-700 hover:bg-gray-600 transition-colors">1:1 正円</button>
+          <button onclick="setPreset(1,2,157)"  class="py-1.5 px-2 rounded-lg text-xs bg-gray-700 hover:bg-gray-600 transition-colors">1:2 楕円</button>
+          <button onclick="setPreset(3,2,157)"  class="py-1.5 px-2 rounded-lg text-xs bg-gray-700 hover:bg-gray-600 transition-colors">3:2 蝶</button>
+          <button onclick="setPreset(5,4,157)"  class="py-1.5 px-2 rounded-lg text-xs bg-gray-700 hover:bg-gray-600 transition-colors">5:4 複雑</button>
+          <button onclick="setPreset(3,1,78)"   class="py-1.5 px-2 rounded-lg text-xs bg-gray-700 hover:bg-gray-600 transition-colors">3:1 波</button>
+          <button onclick="setPreset(4,3,157)"  class="py-1.5 px-2 rounded-lg text-xs bg-gray-700 hover:bg-gray-600 transition-colors">4:3 格子</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('lissCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    let freqA = 1, freqB = 1, delta = 0;
+    let thickness = 2, speed = 5;
+    let isAnimated = false;
+    let animT = 0;
+    let hueOffset = 0;
+    let rafId = null;
+    let trailPoints = [];
+
+    const DESCRIPTIONS = {
+      '1:1': '正円', '1:2': 'リサージュ楕円', '2:1': 'リサージュ楕円',
+      '1:3': '複葉曲線', '3:1': '複葉曲線', '2:3': '複雑な曲線', '3:2': '蝶形曲線',
+      '3:4': '格子状曲線', '4:3': '格子状曲線', '5:4': '複雑な曲線',
+      '4:5': '複雑な曲線', '1:4': 'ループ曲線'
+    };
+
+    function getDesc() {
+      const key = `${freqA}:${freqB}`;
+      return key + ' — ' + (DESCRIPTIONS[key] || 'リサージュ曲線');
+    }
+
+    function computePoint(t) {
+      const A = W/2 - 20, B = H/2 - 20;
+      const x = CX + A * Math.sin(freqA * t + delta);
+      const y = CY + B * Math.sin(freqB * t);
+      return {x, y};
+    }
+
+    const CX = W/2, CY = H/2;
+
+    function drawStatic() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+      drawGrid();
+
+      const STEPS = 2000;
+      ctx.lineWidth = thickness;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      for (let i = 0; i < STEPS; i++) {
+        const t1 = (i / STEPS) * 2 * Math.PI;
+        const t2 = ((i+1) / STEPS) * 2 * Math.PI;
+        const p1 = computePoint(t1);
+        const p2 = computePoint(t2);
+        const hue = (i / STEPS * 360 + hueOffset) % 360;
+        ctx.strokeStyle = `hsl(${hue},90%,60%)`;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+
+      document.getElementById('curveDesc').textContent = getDesc();
+    }
+
+    function drawGrid() {
+      ctx.strokeStyle = '#1a2030';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= W; x += 50) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      }
+      for (let y = 0; y <= H; y += 50) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      }
+      ctx.strokeStyle = '#263040';
+      ctx.beginPath(); ctx.moveTo(CX, 0); ctx.lineTo(CX, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, CY); ctx.lineTo(W, CY); ctx.stroke();
+    }
+
+    let animStep = 0;
+    function animateFrame() {
+      if (!isAnimated) return;
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+      drawGrid();
+
+      // Advance trail
+      const dt = (speed / 1000) * Math.PI;
+      for (let s = 0; s < speed; s++) {
+        animT += 0.015;
+        const p = computePoint(animT);
+        const hue = (animT / (2*Math.PI) * 360 * freqA) % 360;
+        trailPoints.push({...p, hue});
+        if (trailPoints.length > 1500) trailPoints.shift();
+      }
+
+      // Draw trail with fading
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (let i = 1; i < trailPoints.length; i++) {
+        const alpha = i / trailPoints.length;
+        ctx.strokeStyle = `hsla(${trailPoints[i].hue},90%,60%,${alpha})`;
+        ctx.lineWidth = thickness * alpha;
+        ctx.beginPath();
+        ctx.moveTo(trailPoints[i-1].x, trailPoints[i-1].y);
+        ctx.lineTo(trailPoints[i].x, trailPoints[i].y);
+        ctx.stroke();
+      }
+
+      // Current point glow
+      if (trailPoints.length > 0) {
+        const last = trailPoints[trailPoints.length-1];
+        ctx.beginPath();
+        ctx.arc(last.x, last.y, thickness+3, 0, 2*Math.PI);
+        ctx.fillStyle = `hsl(${last.hue},90%,80%)`;
+        ctx.shadowColor = `hsl(${last.hue},90%,60%)`;
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      document.getElementById('curveDesc').textContent = getDesc();
+      rafId = requestAnimationFrame(animateFrame);
+    }
+
+    function startAnimation() {
+      if (rafId) cancelAnimationFrame(rafId);
+      trailPoints = [];
+      animT = 0;
+      rafId = requestAnimationFrame(animateFrame);
+    }
+
+    function stopAnimation() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+
+    function redraw() {
+      hueOffset = Math.random() * 360;
+      if (isAnimated) {
+        startAnimation();
+      } else {
+        stopAnimation();
+        drawStatic();
+      }
+    }
+
+    // Controls
+    const freqASlider = document.getElementById('freqA');
+    const freqBSlider = document.getElementById('freqB');
+    const phaseSlider = document.getElementById('phaseSlider');
+    const thicknessSlider = document.getElementById('thicknessSlider');
+    const speedSlider = document.getElementById('speedSlider');
+
+    freqASlider.addEventListener('input', () => {
+      freqA = parseInt(freqASlider.value);
+      document.getElementById('freqAVal').textContent = freqA;
+      redraw(); saveState();
+    });
+    freqBSlider.addEventListener('input', () => {
+      freqB = parseInt(freqBSlider.value);
+      document.getElementById('freqBVal').textContent = freqB;
+      redraw(); saveState();
+    });
+    phaseSlider.addEventListener('input', () => {
+      delta = parseInt(phaseSlider.value) / 100;
+      document.getElementById('phaseVal').textContent = (delta / Math.PI).toFixed(2) + 'π';
+      redraw(); saveState();
+    });
+    thicknessSlider.addEventListener('input', () => {
+      thickness = parseFloat(thicknessSlider.value);
+      document.getElementById('thicknessVal').textContent = thickness;
+      saveState();
+    });
+    speedSlider.addEventListener('input', () => {
+      speed = parseInt(speedSlider.value);
+      document.getElementById('speedVal').textContent = speed;
+      saveState();
+    });
+
+    document.getElementById('modeStatic').addEventListener('click', () => {
+      isAnimated = false;
+      document.getElementById('modeStatic').className   = 'flex-1 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white transition-colors';
+      document.getElementById('modeAnimated').className = 'flex-1 py-1.5 rounded-lg text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 transition-colors';
+      redraw(); saveState();
+    });
+    document.getElementById('modeAnimated').addEventListener('click', () => {
+      isAnimated = true;
+      document.getElementById('modeAnimated').className = 'flex-1 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white transition-colors';
+      document.getElementById('modeStatic').className   = 'flex-1 py-1.5 rounded-lg text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 transition-colors';
+      redraw(); saveState();
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      stopAnimation();
+      trailPoints = [];
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+      drawGrid();
+    });
+    document.getElementById('redrawBtn').addEventListener('click', redraw);
+
+    function setPreset(a, b, ph) {
+      freqA = a; freqB = b; delta = ph / 100;
+      freqASlider.value = a;
+      freqBSlider.value = b;
+      phaseSlider.value = ph;
+      document.getElementById('freqAVal').textContent = a;
+      document.getElementById('freqBVal').textContent = b;
+      document.getElementById('phaseVal').textContent = (delta / Math.PI).toFixed(2) + 'π';
+      redraw(); saveState();
+    }
+
+    // Persistence
+    function saveState() {
+      localStorage.setItem('lissajous', JSON.stringify({ freqA, freqB, delta: Math.round(delta*100), thickness, speed, isAnimated }));
+    }
+    function loadState() {
+      try {
+        const s = JSON.parse(localStorage.getItem('lissajous'));
+        if (s) {
+          freqA = s.freqA || 1; freqB = s.freqB || 1;
+          delta = (s.delta || 0) / 100;
+          thickness = s.thickness || 2;
+          speed = s.speed || 5;
+          isAnimated = !!s.isAnimated;
+          freqASlider.value = freqA; freqBSlider.value = freqB;
+          phaseSlider.value = Math.round(delta * 100);
+          thicknessSlider.value = thickness; speedSlider.value = speed;
+          document.getElementById('freqAVal').textContent = freqA;
+          document.getElementById('freqBVal').textContent = freqB;
+          document.getElementById('phaseVal').textContent = (delta/Math.PI).toFixed(2) + 'π';
+          document.getElementById('thicknessVal').textContent = thickness;
+          document.getElementById('speedVal').textContent = speed;
+          if (isAnimated) {
+            document.getElementById('modeAnimated').className = 'flex-1 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white transition-colors';
+            document.getElementById('modeStatic').className   = 'flex-1 py-1.5 rounded-lg text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 transition-colors';
+          }
+        }
+      } catch(e) {}
+    }
+
+    loadState();
+    redraw();
+  </script>
+</body>
+</html>
